@@ -1,5 +1,5 @@
 // src/components/RightContent/AvatarDropdown.tsx
-import { LogoutOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
+import { HeartOutlined, LogoutOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { Spin } from 'antd';
 import { stringify } from 'querystring';
@@ -60,6 +60,11 @@ const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({ menu }) => {
       key: 'my-property',
       icon: <UnorderedListOutlined />,
       label: 'Bất động sản của tôi',
+    },
+    {
+      key: 'my-favourite',
+      icon: <HeartOutlined />,
+      label: 'Bất động sản đã lưu',
     },
     {
       key: 'logout',

@@ -16,85 +16,54 @@ import { HomeOutlined } from '@ant-design/icons';
 import { useLocation } from '@umijs/max';
 import useLocations from '@/selectors/useLocation';
 import CustomTreeSelect from '@/components/tree/treeSelectCustom';
-//import { HomeOutlined, DollarOutlined, EnvironmentOutlined, ApiOutlined } from 'antd';
+import { predictPrice, PredictRequest, PredictResponse } from '@/servicesML/predictionService';
+import {
+  findIdAndNodeChildrenIds,
+  findNodeById,
+  findPathByValue,
+} from '@/components/tree/treeUtil';
+import useCategoryShareds from '@/selectors/useCategoryShareds';
+import usePropertyType from '@/selectors/usePropertyType';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Định nghĩa kiểu dữ liệu cho form
-interface FormValues {
-  price: number;
-  area: number;
-  location: string;
-  bedrooms: number;
-  bathrooms: number;
-}
-
-// Định nghĩa kết quả dự đoán
-interface PredictionResult {
-  estimatedPrice: number;
-  priceRange: {
-    min: number;
-    max: number;
-  };
-  confidence: number;
-}
-
 const RealEstatePrediction: React.FC = () => {
   const [form] = Form.useForm();
-  const { locationTree } = useLocations();
+  const { locationTree, locationList } = useLocations();
+  const { dmDirection } = useCategoryShareds();
+  const { propertyTypeList } = usePropertyType()
 
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<PredictionResult | null>(null);
-  
-  // Hàm dự đoán giá (mô phỏng)
-  const predictPrice = (values: FormValues): Promise<PredictionResult> => {
-    return new Promise((resolve) => {
-      // Mô phỏng quá trình dự đoán
-      setTimeout(() => {
-        // Công thức dự đoán đơn giản (thay thế bằng mô hình thực tế)
-        const locationFactor =
-          {
-            'Ba Đình': 1.5,
-            'Hoàn Kiếm': 1.6,
-            'Tây Hồ': 1.4,
-            'Cầu Giấy': 1.3,
-            'Đống Đa': 1.2,
-            'Hai Bà Trưng': 1.25,
-            'Long Biên': 0.9,
-            'Hoàng Mai': 0.85,
-            'Thanh Xuân': 1.1,
-            'Hà Đông': 0.8,
-          }[values.location] || 0.7;
+  const [result, setResult] = useState<number | null>(null);
+  const [locationIdsSelected, setLocationIdsSelected] = useState<any[] | null>([]);
 
-        const bedroomFactor = 0.15 * values.bedrooms;
-        const bathroomFactor = 0.1 * values.bathrooms;
+  const propertyType = Form.useWatch('property_type', form);
 
-        const basePrice = values.area * 35000000; // Giá cơ bản 35 triệu/m2
-        const estimatedPrice = basePrice * locationFactor * (1 + bedroomFactor + bathroomFactor);
+  console.log('locationTree', locationTree);
 
-        // Tạo khoảng giá và độ tin cậy
-        const priceVariation = 0.1; // Biến động 10%
-        const minPrice = estimatedPrice * (1 - priceVariation);
-        const maxPrice = estimatedPrice * (1 + priceVariation);
-
-        resolve({
-          estimatedPrice,
-          priceRange: {
-            min: minPrice,
-            max: maxPrice,
-          },
-          confidence: 0.85, // Độ tin cậy 85%
-        });
-      }, 1500); // Giả lập độ trễ 1.5 giây
-    });
-  };
-
-  const onFinish = async (values: FormValues) => {
+  const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      const prediction = await predictPrice(values);
-      setResult(prediction);
+      const district: string = locationList.find((item) => item.locationId === locationIdsSelected[1])?.name ?? '';
+      const province: string = locationList.find((item) => item.locationId === locationIdsSelected[0])?.name ?? '';
+      const body: any = {
+        district: district,
+        province: province,
+        area: values.area,
+        frontage: values.frontage,
+        access_road: values.access_road,
+        direction: values.direction,
+        property_type: values.property_type,
+        floors: values.floors || 1,
+        bedrooms: values.bedrooms,
+        bathrooms: values.bathrooms,
+      };
+      console.log('body', body);
+      predictPrice(body).then((res: PredictResponse) => {
+        console.log('Kết quả dự đoán:', res);
+        setResult(res?.data);
+      });
     } catch (error) {
       console.error('Lỗi dự đoán:', error);
     } finally {
@@ -102,17 +71,15 @@ const RealEstatePrediction: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   const resetForm = () => {
     form.resetFields();
     setResult(null);
+  };
+
+  const handlePropertyTypeChange = (value: string) => {
+    if (value === 'Căn hộ') {
+      form.setFieldValue('floors', undefined);
+    }
   };
 
   return (
@@ -122,24 +89,46 @@ const RealEstatePrediction: React.FC = () => {
           <Space>
             <HomeOutlined />
             <Title level={4} style={{ margin: 0 }}>
-              Dự Đoán Giá Bất Động Sản
+              Định giá bất động sản
             </Title>
           </Space>
         }
         style={{ maxWidth: '800px', margin: '0 auto' }}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{
-            price: undefined,
-            area: undefined,
-            location: undefined,
-            bedrooms: 2,
-            bathrooms: 1,
-          }}
-        >
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item
+            label="Vị trí"
+            name="locationIds"
+            rules={[{ required: true, message: 'Vui lòng chọn vị trí!' }]}
+          >
+            <CustomTreeSelect
+              showSearch
+              treeData={locationTree}
+              fieldNames={{ label: 'name', value: 'locationId', children: 'children' }}
+              placeholder="Chọn khu vực"
+              allowClear
+              treeDefaultExpandAll={false}
+              onChange={(value) => {
+                setLocationIdsSelected(findPathByValue(locationTree, value));
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="Loại bất động sản"
+            name="property_type"
+            rules={[{ required: true, message: 'Vui lòng chọn loại bất động sản!' }]}
+          >
+            <Select 
+              placeholder="Chọn loại bất động sản"
+              onChange={handlePropertyTypeChange}
+            >
+              {propertyTypeList.map((item) => {
+                return <Option key={item.propertyTypeId} value={item.name} disabled={item.code === 'LAND'}>{item.name}</Option>
+              })}
+            </Select>
+          </Form.Item>
+
           <Form.Item
             label="Diện tích (m²)"
             name="area"
@@ -154,23 +143,58 @@ const RealEstatePrediction: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="Vị trí"
-            name="locationId"
-            rules={[{ required: true, message: 'Vui lòng chọn vị trí!' }]}
+            label="Mặt tiền (m)"
+            name="frontage"
+            rules={[{ required: true, message: 'Vui lòng nhập độ rộng mặt tiền!' }]}
           >
-            <CustomTreeSelect
-                showSearch
-                treeData={locationTree}
-                fieldNames={{ label: 'name', value: 'locationId', children: 'children' }}
-                placeholder="Chọn khu vực"
-                allowClear
-                treeDefaultExpandAll
-                // onChange={(value) => {
-                //   const node = findNodeById(locationTree, value);
-                //   form.setFieldValue('locationIds', findIdAndNodeChildrenIds(node));
-                // }}
-              />
+            <InputNumber
+              style={{ width: '100%' }}
+              min={1}
+              placeholder="Nhập độ rộng mặt tiền"
+              addonAfter="m"
+            />
           </Form.Item>
+
+          <Form.Item
+            label="Hướng nhà"
+            name="direction"
+            rules={[{ required: true, message: 'Vui lòng chọn hướng nhà!' }]}
+          >
+            <Select placeholder="Chọn hướng nhà">
+              {dmDirection.map((item) => (
+                <Option key={item.categorySharedId} value={item.name}>
+                  {item.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Độ rộng đường vào nhà (m)"
+            name="access_road"
+            rules={[{ required: true, message: 'Vui lòng nhập độ rộng đường vào nhà!' }]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={1}
+              placeholder="Nhập độ rộng đường vào nhà"
+              addonAfter="m"
+            />
+          </Form.Item>
+
+          {propertyType === 'Nhà' && (
+            <Form.Item
+              label="Số tầng"
+              name="floors"
+              rules={[{ required: true, message: 'Vui lòng nhập số tầng!' }]}
+            >
+              <InputNumber 
+                style={{ width: '100%' }} 
+                min={1} 
+                placeholder="Nhập số tầng" 
+              />
+            </Form.Item>
+          )}
 
           <Form.Item
             label="Số phòng ngủ"
@@ -187,21 +211,6 @@ const RealEstatePrediction: React.FC = () => {
           >
             <InputNumber style={{ width: '100%' }} min={0} placeholder="Nhập số phòng tắm" />
           </Form.Item>
-
-          {/* <Form.Item
-            label="Giá tham khảo (VND)"
-            name="price"
-            rules={[{ required: true, message: 'Vui lòng nhập giá tham khảo!' }]}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              step={100000000}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              placeholder="Nhập giá tham khảo"
-              addonAfter="VND"
-            />
-          </Form.Item> */}
 
           <Form.Item>
             <Space>
@@ -223,22 +232,11 @@ const RealEstatePrediction: React.FC = () => {
         {result && !loading && (
           <>
             <Divider />
-            <Result
-              status="success"
-              title="Kết quả dự đoán"
-              subTitle={`Dựa trên các thông số bạn đã nhập, chúng tôi dự đoán giá bất động sản như sau:`}
-            >
+            <Result status="success" title="Kết quả dự đoán">
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <Title level={3} style={{ color: '#1890ff' }}>
-                  {formatCurrency(result.estimatedPrice)}
+                  {result} - Tỷ VND
                 </Title>
-                <Text>
-                  Khoảng giá: {formatCurrency(result.priceRange.min)} -{' '}
-                  {formatCurrency(result.priceRange.max)}
-                </Text>
-                <div style={{ marginTop: '10px' }}>
-                  <Text>Độ tin cậy: {result.confidence * 100}%</Text>
-                </div>
               </div>
             </Result>
           </>

@@ -129,6 +129,11 @@ export default [
         component: './MyProperty',
       },
       {
+        name: 'Danh sách đã lưu',
+        path: '/account/my-favourite',
+        component: './MyFavourite',
+      },
+      {
         name: 'Thêm mới bất động sản',
         path: '/account/my-property/create',
         component: './MyProperty/Create',

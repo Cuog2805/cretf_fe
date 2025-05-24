@@ -99,6 +99,10 @@ declare namespace API {
     fileId: string;
   };
 
+  type deletePropertyCommentParams = {
+    id: string;
+  };
+
   type deletePropertyParams = {
     id: string;
   };
@@ -219,6 +223,15 @@ declare namespace API {
     id: string;
   };
 
+  type getFavouritePropertiesParams = {
+    /** Zero-based page index (0..N) */
+    page?: number;
+    /** The size of the page to be returned */
+    size?: number;
+    /** Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+    sort?: string[];
+  };
+
   type getFileInfoParams = {
     fileId: string;
   };
@@ -258,10 +271,10 @@ declare namespace API {
   type PageableObject = {
     offset?: number;
     sort?: SortObject;
-    unpaged?: boolean;
-    pageNumber?: number;
-    pageSize?: number;
     paged?: boolean;
+    pageSize?: number;
+    pageNumber?: number;
+    unpaged?: boolean;
   };
 
   type PageStatusDTO = {
@@ -271,11 +284,26 @@ declare namespace API {
     content?: StatusDTO[];
     number?: number;
     sort?: SortObject;
+    numberOfElements?: number;
     first?: boolean;
     last?: boolean;
     pageable?: PageableObject;
-    numberOfElements?: number;
     empty?: boolean;
+  };
+
+  type PropertyCommentDTO = {
+    propertyCommentId?: string;
+    propertyId?: string;
+    parentCode?: string;
+    code?: string;
+    path?: string;
+    level?: number;
+    content?: string;
+    creator?: string;
+    dateCreated?: string;
+    modifier?: string;
+    dateModified?: string;
+    isDeleted?: number;
   };
 
   type PropertyDTO = {
@@ -305,6 +333,10 @@ declare namespace API {
     coordinatesDTO?: CoordinatesDTO;
     publicFacilityDTOs?: PublicFacilityDTO[];
     type?: string;
+    views?: number;
+    usernameFav?: string;
+    isInFavourite?: number;
+    propertyCommentDTOs?: PropertyCommentDTO[];
     creator?: string;
     dateCreated?: string;
     modifier?: string;
@@ -478,6 +510,14 @@ declare namespace API {
     throwException?: boolean;
   };
 
+  type ResponsePropertyCommentDTO = {
+    success: boolean;
+    message?: string;
+    data: PropertyCommentDTO;
+    total: number;
+    throwException?: boolean;
+  };
+
   type ResponsePropertyDTO = {
     success: boolean;
     message?: string;
@@ -556,8 +596,8 @@ declare namespace API {
 
   type SortObject = {
     empty?: boolean;
-    unsorted?: boolean;
     sorted?: boolean;
+    unsorted?: boolean;
   };
 
   type StatusDTO = {

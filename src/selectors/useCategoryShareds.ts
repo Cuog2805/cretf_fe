@@ -13,6 +13,7 @@ const useCategoryShareds = () => {
         dmMainMenu: categoryShareds.filter(item => item.categoryType === 'MAIN_MENU'),
         dmAmenityType: categoryShareds.filter(item => item.categoryType === 'AMENITY_TYPE'),
         dmGender: categoryShareds.filter(item => item.categoryType === 'GENDER'),
+        dmDirection: categoryShareds.filter(item => item.categoryType === 'DIRECTION'),
     }), [categoryShareds])
 
     return retVal

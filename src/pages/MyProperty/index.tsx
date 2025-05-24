@@ -64,7 +64,6 @@ const MyPropertyList = () => {
   const [totalValue, setTotalValue] = useState(0);
   const [totalSale, setTotalSale] = useState(0);
   const [totalRent, setTotalRent] = useState(0);
-  const [searchText, setSearchText] = useState('');
   const [propertyType, setPropertyType] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [deletingIds, setDeletingIds] = useState<string[]>([]);

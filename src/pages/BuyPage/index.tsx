@@ -14,6 +14,8 @@ import {
   List,
   Form,
   TreeSelect,
+  Tooltip,
+  message,
 } from 'antd';
 import { PageContainer, ProCard } from '@ant-design/pro-components';
 import {
@@ -25,7 +27,12 @@ import {
   LikeOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { getAllProperties, getOneDetailProperty } from '@/services/apis/propertyController';
+import {
+  addToFavourite,
+  getAllProperties,
+  getOneDetailProperty,
+  removeToFavourite,
+} from '@/services/apis/propertyController';
 import { UNPAGED } from '@/core/constant';
 import useStatus from '@/selectors/useStatus';
 import FileRenderer from '@/components/FIle/fileRender';
@@ -46,7 +53,7 @@ const BuyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useCurrentUser();
-  const {locationId} = useParams();
+  const { locationId } = useParams();
 
   const { propertySoldStatusList, propertyStatusList } = useStatus();
   const { propertyTypeList } = usePropertyType();
@@ -63,16 +70,16 @@ const BuyPage = () => {
   const { pagination } = tableProps(total);
 
   useEffect(() => {
-    if(locationId){
+    if (locationId) {
       form.setFieldValue('locationIds', [locationId]);
     }
-  }, [locationId])
+  }, [locationId]);
 
   useEffect(() => {
-    if(propertyTypeList && propertyTypeList.length > 0){
+    if (propertyTypeList && propertyTypeList.length > 0 && propertySoldStatusList && propertySoldStatusList.length > 0) {
       handleSearch();
     }
-  }, [paginationQuery, propertyTypeList]);
+  }, [paginationQuery, propertyTypeList, propertySoldStatusList]);
 
   const getPropertyTypeFromMenu = (): API.PropertyDTO => {
     const path = location.pathname;
@@ -113,9 +120,11 @@ const BuyPage = () => {
         type: typeSearch.type,
         propertyTypeId: typeSearch.propertyTypeId,
         priceNewestScale: location.pathname.includes('/buy')
-        ? 'SCALE_BILLION_VND'
-        : 'SCALE_MILLION_VND',
+          ? 'SCALE_BILLION_VND'
+          : null,
         //creator: currentUser?.username,
+        statusIds: [propertySoldStatusList.find((d) => d.code === 'WAITING')?.statusId],
+        usernameFav: currentUser?.username,
       };
       console.log('body', body);
       const page: any = {
@@ -145,6 +154,36 @@ const BuyPage = () => {
     });
   };
 
+  const handleAddToFavourite = (id: string) => {
+    addToFavourite({ propertyId: id, usernameFav: currentUser?.username })
+      .then((res) => {
+        if (res.success) {
+          handleSearch();
+          message.success('Đã lưu bất động sản thành công');
+        } else {
+          message.error('Có lỗi khi lưu bất động sản');
+        }
+      })
+      .catch((error) => {
+        message.error('Có lỗi khi lưu bất động sản');
+      });
+  };
+
+  const handleRemoveToFavourite = (id: string) => {
+    removeToFavourite({ propertyId: id, usernameFav: currentUser?.username })
+      .then((res) => {
+        if (res.success) {
+          handleSearch();
+          message.success('Đã xóa bất động sản khỏi danh sách đã lưu thành công');
+        } else {
+          message.error('Có lỗi khi xóa bất động sản khỏi danh sách đã lưu');
+        }
+      })
+      .catch((error) => {
+        message.error('Có lỗi khi xóa bất động sản khỏi danh sách đã lưu');
+      })
+  };
+
   return (
     <PageContainer
       header={{
@@ -157,7 +196,9 @@ const BuyPage = () => {
           <Row gutter={12}>
             <Col xs={24} sm={24} md={12}>
               <Title level={2} style={{ fontWeight: 700 }}>
-                {getPropertyTypeFromMenu().type === 'SOLD' ? 'Nhà đang bán gần bạn' : 'Nhà cho thuê gần bạn'}
+                {getPropertyTypeFromMenu().type === 'SOLD'
+                  ? 'Nhà đang bán gần bạn'
+                  : 'Nhà cho thuê gần bạn'}
               </Title>
               <Paragraph style={{ fontSize: 16, marginBottom: 32 }}>
                 Tìm nhà để bán gần bạn. Xem ảnh, thông tin nhà mở cửa và thông tin chi tiết về bất
@@ -187,7 +228,6 @@ const BuyPage = () => {
                 <FormItem name="locationIds">
                   <CustomTreeSelect
                     showSearch
-                    dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
                     treeData={locationTree}
                     fieldNames={{ label: 'name', value: 'locationId', children: 'children' }}
                     placeholder="Chọn khu vực"
@@ -394,14 +434,31 @@ const BuyPage = () => {
                     }}
                   >
                     <Space>
-                      <Button
-                        type="text"
-                        size="large"
-                        icon={<HeartFilled style={{ color: '#ff4d4f' }} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      ></Button>
+                      {item.isInFavourite === 1 ? (
+                        <Tooltip title="Bỏ lưu">
+                          <Button
+                            type="text"
+                            size="large"
+                            icon={<HeartFilled style={{ color: '#ff4d4f' }}/>}
+                            onClick={(e) => {
+                              handleRemoveToFavourite(item.propertyId ?? '');
+                              e.stopPropagation();
+                            }}
+                          ></Button>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Lưu">
+                          <Button
+                            type="text"
+                            size="large"
+                            icon={<HeartOutlined style={{ color: '#ff4d4f' }} />}
+                            onClick={(e) => {
+                              handleAddToFavourite(item.propertyId ?? '');
+                              e.stopPropagation();
+                            }}
+                          ></Button>
+                        </Tooltip>
+                      )}
                     </Space>
                   </div>
                 </div>

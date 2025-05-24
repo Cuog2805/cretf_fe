@@ -123,7 +123,6 @@ const CustomTreeSelect: React.FC<CustomTreeSelectProps> = ({
       placeholder={placeholder}
       allowClear={allowClear}
       treeDefaultExpandAll={treeDefaultExpandAll}
-      dropdownStyle={{ maxHeight: 400, overflow: 'auto', ...props.dropdownStyle }}
       showSearch
       onSearch={handleSearch}
       filterTreeNode={false} // Tắt cơ chế lọc mặc định
