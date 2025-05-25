@@ -237,7 +237,6 @@ const PropertyComment = ({ propertyDetail }: { propertyDetail: API.PropertyDTO |
         ) : (
           <Empty 
             image={Empty.PRESENTED_IMAGE_SIMPLE} 
-            description="Chưa có nhận xét nào cho bất động sản này"
           />
         )}
         
