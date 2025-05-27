@@ -123,7 +123,9 @@ const BuyPage = () => {
           ? 'SCALE_BILLION_VND'
           : null,
         //creator: currentUser?.username,
-        statusIds: [propertySoldStatusList.find((d) => d.code === 'WAITING')?.statusId],
+        statusIds: location.pathname.includes('/buy')
+        ? [propertyStatusList.find((d) => d.code === 'FORSOLD')?.statusId]
+        : [propertyStatusList.find((d) => d.code === 'FORRENT')?.statusId],
         usernameFav: currentUser?.username,
       };
       console.log('body', body);

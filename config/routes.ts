@@ -129,6 +129,11 @@ export default [
         component: './MyProperty',
       },
       {
+        name: 'Xem chi tiết bất động sản của tôi',
+        path: '/account/my-property/detail/:propertyId',
+        component: './MyProperty/Detail',
+      },
+      {
         name: 'Danh sách đã lưu',
         path: '/account/my-favourite',
         component: './MyFavourite',

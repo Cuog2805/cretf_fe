@@ -14,6 +14,7 @@ declare namespace API {
     scaleUnit?: string;
     valueDisplay?: string;
     level?: string;
+    ordinal?: number;
     creator?: string;
     dateCreated?: string;
     modifier?: string;
@@ -35,11 +36,23 @@ declare namespace API {
     date?: string;
     statusId?: string;
     note?: string;
+    approvalHistoryDTO?: ApprovalHistoryDTO;
+    approvalHistoryDTOs?: ApprovalHistoryDTO[];
     creator?: string;
     dateCreated?: string;
     modifier?: string;
     dateModified?: string;
     isDeleted?: number;
+  };
+
+  type ApprovalHistoryDTO = {
+    approvalId?: string;
+    entityTableId?: string;
+    tableName?: string;
+    statusId?: string;
+    note?: string;
+    approvalDate?: string;
+    approver?: string;
   };
 
   type CategorySharedDTO = {
@@ -72,19 +85,17 @@ declare namespace API {
   type DashBoardDTO = {
     dashBoardId?: string;
     type?: string;
-    priceRangeCode?: string;
-    priceRange?: string;
-    priceRangeCount?: number;
-    priceRangePie?: number;
-    name?: string;
-    depositContractDate?: string;
-    depositContractCount?: number;
-    propertyTypeName?: string;
-    propertyCount?: number;
-    priceAvarage?: number;
-    totalViews?: number;
-    totalDepositContractValue?: number;
-    totalPropertyActive?: number;
+    title?: string;
+    category?: string;
+    sortOrder?: number;
+    value?: number;
+    scaleUnit?: string;
+    avgValue?: number;
+    totalValue?: number;
+    count?: number;
+    percentage?: number;
+    minValue?: number;
+    maxValue?: number;
   };
 
   type deleteAppointmentParams = {
@@ -107,6 +118,10 @@ declare namespace API {
     id: string;
   };
 
+  type deleteRoleParams = {
+    id: string;
+  };
+
   type deleteUserParams = {
     userId: string;
   };
@@ -125,6 +140,8 @@ declare namespace API {
     downloadUrl?: string;
     statusId?: string;
     depositDTO?: DepositDTO;
+    approvalHistoryDTO?: ApprovalHistoryDTO;
+    approvalHistoryDTOs?: ApprovalHistoryDTO[];
   };
 
   type DepositDTO = {
@@ -206,6 +223,15 @@ declare namespace API {
     sort?: string[];
   };
 
+  type getAllUsersParams = {
+    /** Zero-based page index (0..N) */
+    page?: number;
+    /** The size of the page to be returned */
+    size?: number;
+    /** Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported. */
+    sort?: string[];
+  };
+
   type getAppointmentBySearchParams = {
     /** Zero-based page index (0..N) */
     page?: number;
@@ -260,10 +286,6 @@ declare namespace API {
     isDeleted?: number;
   };
 
-  type lockRoleParams = {
-    id: string;
-  };
-
   type lockUserParams = {
     userId: string;
   };
@@ -271,10 +293,10 @@ declare namespace API {
   type PageableObject = {
     offset?: number;
     sort?: SortObject;
+    unpaged?: boolean;
     paged?: boolean;
     pageSize?: number;
     pageNumber?: number;
-    unpaged?: boolean;
   };
 
   type PageStatusDTO = {
@@ -329,6 +351,8 @@ declare namespace API {
     priceTo?: number;
     propertyPriceNewest?: PropertyPriceHistoryDTO;
     propertyPriceHistoryDTOs?: PropertyPriceHistoryDTO[];
+    approvalHistoryDTO?: ApprovalHistoryDTO;
+    approvalHistoryDTOs?: ApprovalHistoryDTO[];
     depositDTO?: DepositDTO;
     coordinatesDTO?: CoordinatesDTO;
     publicFacilityDTOs?: PublicFacilityDTO[];
@@ -558,12 +582,12 @@ declare namespace API {
     throwException?: boolean;
   };
 
-  type ResponseVoid = {
-    success: boolean;
-    message?: string;
-    data: Record<string, any>;
-    total: number;
-    throwException?: boolean;
+  type restoreRoleParams = {
+    id: string;
+  };
+
+  type restoreUserParams = {
+    userId: string;
   };
 
   type RoleDTO = {
@@ -596,8 +620,8 @@ declare namespace API {
 
   type SortObject = {
     empty?: boolean;
-    sorted?: boolean;
     unsorted?: boolean;
+    sorted?: boolean;
   };
 
   type StatusDTO = {
@@ -611,10 +635,6 @@ declare namespace API {
     modifier?: string;
     dateModified?: string;
     isDeleted?: number;
-  };
-
-  type unlockRoleParams = {
-    id: string;
   };
 
   type unlockUserParams = {

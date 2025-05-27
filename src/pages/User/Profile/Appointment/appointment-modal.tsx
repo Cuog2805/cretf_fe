@@ -39,10 +39,8 @@ const AppointmentModal = (props: {
   const currentUser = useCurrentUser();
   const { locationList } = useLocation();
   
-  // Finding the scheduled status ID once and storing it
   const scheduledStatusId = appointmentStatusList.find((s) => s.code === 'PROCESS')?.statusId;
 
-  // Set initial values based on whether we're creating or updating
   useEffect(() => {
     if (props.isModalAppointmentVisible) {
       // Reset form when modal opens/closes
@@ -60,7 +58,7 @@ const AppointmentModal = (props: {
           buyerId: props.appointmentUpdate.buyerId,
           sellerId: props.appointmentUpdate.sellerId,
           agentId: props.appointmentUpdate.agentId,
-          statusId: props.appointmentUpdate.statusId || scheduledStatusId, // Fallback to scheduled if not provided
+          statusId: scheduledStatusId,
           date: props.appointmentUpdate.date ? moment(props.appointmentUpdate.date) : null,
           note: props.appointmentUpdate.note,
         });
@@ -79,15 +77,15 @@ const AppointmentModal = (props: {
     formAppointment.validateFields().then((formValue) => {
       console.log('formValue', formValue);
       createAppointment({
-        ...formValue,
-        // No need to override statusId here since it's already in the form values
+        appointmentId: props.type === 'update' ? props.appointmentUpdate?.appointmentId : undefined,
+        ...formValue
       })
         .then((resp) => {
           if (resp.success) {
             message.success(
               props.type === 'create' ? 'Tạo cuộc hẹn thành công' : 'Cập nhật cuộc hẹn thành công',
             );
-            //await fetchAppointments();
+            //fetchAppointments();
             formAppointment.resetFields();
             props.onCancel();
           } else {

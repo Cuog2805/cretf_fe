@@ -1,36 +1,12 @@
-import { Avatar, Form, Popconfirm, Table, Tabs, TimePicker } from 'antd';
+import { Avatar, Form, Popconfirm, Table, Tabs, TimePicker, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import moment from 'moment';
+import { Calendar, Badge, Button, Card, Space, Tag, Typography, message } from 'antd';
+import { HistoryOutlined } from '@ant-design/icons';
 import {
-  Calendar,
-  Badge,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Divider,
-  Input,
-  List,
-  Modal,
-  Row,
-  Select,
-  Space,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
-import {
-  EnvironmentOutlined,
-  VideoCameraOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-} from '@ant-design/icons';
-import {
-  confirmAppointment,
   createAppointment,
   deleteAppointment,
   getAppointmentBySearch,
-  rejectAppointment,
   updateAppointment,
 } from '@/services/apis/appointmentController';
 import dayjs from 'dayjs';
@@ -41,11 +17,14 @@ import TabPane from 'antd/es/tabs/TabPane';
 import AppointmentModal from './appointment-modal';
 import usePagination from '@/components/EditableTable/usePagination';
 import { useCurrentUser } from '@/selectors/useCurrentUser';
+import AppointmentApprovalModal from './approve-modal';
+import ApprovalHistoryModal from '../../../../components/ApprovalHistory/approve-history-modal';
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const Appointment: React.FC = () => {
   const currentUser = useCurrentUser();
+  const { appointmentStatusList } = useStatus();
 
   const [appointments, setAppointments] = useState<API.AppointmentDTO[]>([]);
   const [appointmentsUpdate, setAppointmentsUpdate] = useState<API.AppointmentDTO | null>(null);
@@ -56,7 +35,11 @@ const Appointment: React.FC = () => {
   const { tableProps } = usePagination();
   const { pagination } = tableProps(total);
 
-  const { appointmentStatusList } = useStatus();
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+  const [isApprove, setIsApprove] = useState(true);
+  const [selectedAppointment, setSelectedAppointment] = useState<API.AppointmentDTO | null>(null);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [selectedHistoryAppointment, setSelectedHistoryAppointment] = useState<API.AppointmentDTO | null>(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -81,8 +64,22 @@ const Appointment: React.FC = () => {
       });
   };
 
+  // Mở modal phê duyệt
+  const handleApprove = (contract: API.AppointmentDTO) => {
+    setSelectedAppointment(contract);
+    setIsApprove(true);
+    setApprovalModalVisible(true);
+  };
+
+  // Mở modal từ chối
+  const handleReject = (contract: API.AppointmentDTO) => {
+    setSelectedAppointment(contract);
+    setIsApprove(false);
+    setApprovalModalVisible(true);
+  };
+
   const handleCancelAppointment = async (id: string) => {
-    deleteAppointment({ id: id})
+    deleteAppointment({ id: id })
       .then((resp) => {
         if (resp.success) {
           message.success('Đã hủy cuộc hẹn thành công');
@@ -93,36 +90,6 @@ const Appointment: React.FC = () => {
       })
       .catch((error) => {
         message.error('Có lỗi xảy ra khi hủy cuộc hẹn');
-      });
-  };
-
-  const handleConfirmAppointment = async (id: string) => {
-    confirmAppointment({ appointmentId: id })
-      .then((resp) => {
-        if (resp.success) {
-          message.success('Đã xác nhận cuộc hẹn thành công');
-          fetchAppointments();
-        } else {
-          message.error('Xác nhận cuộc hẹn thất bại');
-        }
-      })
-      .catch((error) => {
-        message.error('Có lỗi xảy ra khi xác nhận cuộc hẹn');
-      });
-  };
-
-  const handleRejectAppointment = async (id: string) => {
-    rejectAppointment({ appointmentId: id })
-      .then((resp) => {
-        if (resp.success) {
-          message.success('Đã từ chối cuộc hẹn thành công');
-          fetchAppointments();
-        } else {
-          message.error('Từ chối cuộc hẹn thất bại');
-        }
-      })
-      .catch((error) => {
-        message.error('Có lỗi xảy ra khi từ chối cuộc hẹn');
       });
   };
 
@@ -166,6 +133,12 @@ const Appointment: React.FC = () => {
     const appointments = getAppointmentsByDate(date);
   };
 
+  // Mở modal lịch sử
+  const handleViewHistory = (appointment: API.AppointmentDTO) => {
+    setSelectedHistoryAppointment(appointment);
+    setHistoryModalVisible(true);
+  };
+
   const columns = [
     {
       title: 'Bất động sản',
@@ -191,12 +164,6 @@ const Appointment: React.FC = () => {
       key: 'seller',
       render: (seller: string) => seller || '___',
     },
-    // {
-    //   title: 'Người đại diện',
-    //   dataIndex: 'agent',
-    //   key: 'agent',
-    //   render: (agent: string) => agent || '___',
-    // },
     {
       title: 'Ghi chú',
       dataIndex: 'note',
@@ -214,29 +181,35 @@ const Appointment: React.FC = () => {
     {
       title: 'Hành động',
       key: 'actions',
-      render: (_: any, record: any) =>
-        record.buyer === currentUser?.username ? (
-          <>
-            <Space>
+      render: (_: any, record: any) => (
+        <Space>
+          <Tooltip title="Xem lịch sử">
+            <Button
+              icon={<HistoryOutlined />}
+              onClick={() => handleViewHistory(record)}
+              size="small"
+            >
+              Lịch sử
+            </Button>
+          </Tooltip>
+          
+          {record.buyer === currentUser?.username ? (
+            <>
               <Button
-                disabled={
-                  !(
-                    appointmentStatusList.find((s) => s.statusId === record.statusId)?.code ===
-                    'PROCESS'
-                  )
-                }
+                // disabled={
+                //   !(
+                //     appointmentStatusList.find((s) => s.statusId === record.statusId)?.code ===
+                //     'PROCESS'
+                //   )
+                // }
                 onClick={() => {
                   showModal(record);
                 }}
+                size="small"
               >
                 Rời lịch
               </Button>
-              <Popconfirm
-                title="Bạn có chắc muốn hủy cuộc hẹn này không?"
-                onConfirm={() => handleCancelAppointment(record.appointmentId)}
-                okText="Đồng ý"
-                cancelText="Hủy"
-              >
+              <Tooltip title="Hủy">
                 <Button
                   disabled={
                     !(
@@ -244,40 +217,32 @@ const Appointment: React.FC = () => {
                       'PROCESS'
                     )
                   }
+                  onClick={() => handleCancelAppointment(record.appointmentId)}
                   danger
+                  size="small"
                 >
                   Hủy hẹn
                 </Button>
-              </Popconfirm>
-            </Space>
-          </>
-        ) : (
-          <>
-            <Space>
-              <Popconfirm
-                title="Bạn có chắc muốn xác nhận cuộc hẹn này không?"
-                onConfirm={() => handleConfirmAppointment(record.appointmentId)}
-                okText="Đồng ý"
-                cancelText="Hủy"
-              >
+              </Tooltip>
+            </>
+          ) : (
+            <>
+              <Tooltip title="Xác nhận">
                 <Button
+                  type="primary"
                   disabled={
                     !(
                       appointmentStatusList.find((s) => s.statusId === record.statusId)?.code ===
                       'PROCESS'
                     )
                   }
-                  danger
+                  onClick={() => handleApprove(record)}
+                  size="small"
                 >
                   Xác nhận
                 </Button>
-              </Popconfirm>
-              <Popconfirm
-                title="Bạn có chắc muốn từ chối cuộc hẹn này không?"
-                onConfirm={() => handleRejectAppointment(record.appointmentId)}
-                okText="Đồng ý"
-                cancelText="Hủy"
-              >
+              </Tooltip>
+              <Tooltip title="Từ chối">
                 <Button
                   disabled={
                     !(
@@ -285,32 +250,35 @@ const Appointment: React.FC = () => {
                       'PROCESS'
                     )
                   }
+                  onClick={() => handleReject(record)}
                   danger
+                  size="small"
                 >
                   Từ chối
                 </Button>
-              </Popconfirm>
-            </Space>
-          </>
-        ),
+              </Tooltip>
+            </>
+          )}
+        </Space>
+      ),
     },
   ];
 
   return (
     <PageContainer title="Lịch hẹn">
       <Card>
-        <Tabs defaultActiveKey="1">
+        <Tabs defaultActiveKey="2">
           <TabPane tab="Lịch" key="1">
             <Calendar cellRender={dateCellRender} onSelect={handleCalendarSelect} />
           </TabPane>
           <TabPane tab="Danh sách cuộc hẹn" key="2">
             <Table
-              //pagination={false}
               rowKey="appointmentId"
               dataSource={appointments}
               columns={columns}
               loading={loading}
               {...tableProps(total ?? 0)}
+              scroll={{ x: 800 }}
             />
           </TabPane>
         </Tabs>
@@ -320,6 +288,21 @@ const Appointment: React.FC = () => {
         appointmentUpdate={appointmentsUpdate}
         onCancel={handleCancelAppointmentModal}
         type="update"
+      />
+      <AppointmentApprovalModal
+        visible={approvalModalVisible}
+        isApprove={isApprove}
+        appointment={selectedAppointment}
+        onClose={() => setApprovalModalVisible(false)}
+        onSuccess={() => {
+          fetchAppointments();
+        }}
+      />
+      <ApprovalHistoryModal
+        visible={historyModalVisible}
+        entityTable={selectedHistoryAppointment}
+        onClose={() => setHistoryModalVisible(false)}
+        title="Lịch sử phê duyệt cuộc hẹn"
       />
     </PageContainer>
   );

@@ -79,7 +79,8 @@ const Deposit: React.FC = () => {
         propertyId: propertyId as string,
         depositDTO: {
           ...propertyDetail?.depositDTO,
-          scaleUnit: moneyScaleList.find((d) => d.scaleId === propertyDetail?.depositDTO?.scaleUnit)?.unit
+          scaleUnit: moneyScaleList.find((d) => d.scaleId === propertyDetail?.depositDTO?.scaleUnit)
+            ?.unit,
         },
         statusId: depositStatusList.find((d) => d.code === 'PROCESS')?.statusId,
       };
@@ -101,7 +102,7 @@ const Deposit: React.FC = () => {
         <Card>
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
             <Spin size="large" />
-            <p style={{ marginTop: 20 }}>Đang tải thông tin tài sản...</p>
+            <p style={{ marginTop: 20 }}>Đang tải thông tin...</p>
           </div>
         </Card>
       </PageContainer>
@@ -136,10 +137,15 @@ const Deposit: React.FC = () => {
             }
             className="shadow-card"
           >
-            <Descriptions bordered column={{ xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 1 }} size="middle">
+            <Descriptions
+              bordered
+              column={{ xs: 1, sm: 1, md: 1, lg: 1, xl: 1, xxl: 1 }}
+              size="middle"
+            >
               <Descriptions.Item label="Tên tài sản" span={2}>
                 <Text strong>
-                  {propertyDetail?.name}, {propertyDetail?.addressSpecific}, {locationList.find((l) => l.locationId === propertyDetail?.locationId)?.fullname}
+                  {propertyDetail?.name}, {propertyDetail?.addressSpecific},{' '}
+                  {locationList.find((l) => l.locationId === propertyDetail?.locationId)?.fullname}
                 </Text>
               </Descriptions.Item>
               <Descriptions.Item label="Loại tài sản">

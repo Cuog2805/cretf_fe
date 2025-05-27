@@ -19,6 +19,7 @@ import {
   message,
   Modal,
   TreeSelect,
+  Tooltip,
 } from 'antd';
 import {
   SearchOutlined,
@@ -30,8 +31,14 @@ import {
   PlusOutlined,
   EditFilled,
   DeleteOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
-import { deleteProperty, getAllProperties } from '@/services/apis/propertyController';
+import {
+  deleteProperty,
+  getAllProperties,
+  repostProperty,
+  updateProperty,
+} from '@/services/apis/propertyController';
 import useStatus from '@/selectors/useStatus';
 import { useCurrentUser } from '@/selectors/useCurrentUser';
 import { UNPAGED } from '@/core/constant';
@@ -41,7 +48,7 @@ import usePagination from '@/components/EditableTable/usePagination';
 import usePropertyType from '@/selectors/usePropertyType';
 import { PageContainer } from '@ant-design/pro-components';
 import { findIdAndNodeChildrenIds, findNodeById, flatToTree } from '@/components/tree/treeUtil';
-import { set } from 'lodash';
+import { set, update } from 'lodash';
 import useLocations from '@/selectors/useLocation';
 import CustomTreeSelect from '@/components/tree/treeSelectCustom';
 
@@ -53,7 +60,7 @@ const MyPropertyList = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const currentUser = useCurrentUser();
-  const { propertySoldStatusList, propertyStatusList } = useStatus();
+  const { propertyRentStatusList, propertySoldStatusList, propertyStatusList } = useStatus();
   const { propertyTypeList } = usePropertyType();
   const { locationList, locationTree } = useLocations();
 
@@ -138,6 +145,24 @@ const MyPropertyList = () => {
     });
   };
 
+  const handleRepost = (id: string | undefined | null, type: string | undefined | null) => {
+    const body: API.PropertyDTO = {
+      propertyId: id ?? '',
+      statusIds:
+        type === 'SOLD'
+          ? [propertySoldStatusList.find((s) => s.code === 'WAITING')?.statusId]
+          : [propertyRentStatusList.find((s) => s.code === 'WAITING')?.statusId],
+    };
+    repostProperty(body).then((res) => {
+      if(res.success){
+        message.success('Đăng lại thành công');
+        handleSearch();
+      }else{
+        message.error('Đăng lại thất bại');
+      }
+    });
+  };
+
   const handleDelete = (id: string) => {
     Modal.confirm({
       title: 'Xác nhận xóa',
@@ -207,12 +232,11 @@ const MyPropertyList = () => {
               <FormItem name="locationIds">
                 <CustomTreeSelect
                   showSearch
-                  dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
                   treeData={locationTree}
                   fieldNames={{ label: 'name', value: 'locationId', children: 'children' }}
                   placeholder="Chọn khu vực"
                   allowClear
-                  treeDefaultExpandAll
+                  treeDefaultExpandAll={false}
                   onChange={(value) => {
                     const node = findNodeById(locationTree, value);
                     form.setFieldValue('locationIds', findIdAndNodeChildrenIds(node));
@@ -313,7 +337,7 @@ const MyPropertyList = () => {
               hoverable
               style={{ width: '100%', borderRadius: 12, overflow: 'hidden' }}
               onClick={() => {
-                navigate(`/buy/houses-for-sale/detail/${item.propertyId}`);
+                navigate(`/account/my-property/detail/${item.propertyId}`);
               }}
               cover={
                 <div style={{ position: 'relative' }}>
@@ -408,25 +432,45 @@ const MyPropertyList = () => {
                   }}
                 >
                   <Space direction="horizontal">
-                    <Button
-                      type="text"
-                      size="large"
-                      icon={<EditFilled style={{ color: '#ff4d4f' }} />}
-                      onClick={(e) => {
-                        navigate(`/account/my-property/edit/${item.propertyId}`);
-                        e.stopPropagation();
-                      }}
-                    ></Button>
-                    <Button
-                      type="text"
-                      size="large"
-                      icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
-                      loading={deletingIds.includes(item.propertyId ?? '')}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent navigating to detail page
-                        handleDelete(item.propertyId ?? '');
-                      }}
-                    />
+                    {propertyStatusList.some(
+                      (s) =>
+                        s.code === 'REJECT' && s.statusId && item.statusIds?.includes(s.statusId),
+                    ) && (
+                      <Tooltip title="Đăng lại">
+                        <Button
+                          type="text"
+                          size="large"
+                          icon={<ReloadOutlined style={{ color: '#ff4d4f' }} />}
+                          onClick={(e) => {
+                            handleRepost(item?.propertyId, item?.type);
+                            e.stopPropagation();
+                          }}
+                        />
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Sửa">
+                      <Button
+                        type="text"
+                        size="large"
+                        icon={<EditFilled style={{ color: '#ff4d4f' }} />}
+                        onClick={(e) => {
+                          navigate(`/account/my-property/edit/${item.propertyId}`);
+                          e.stopPropagation();
+                        }}
+                      ></Button>
+                    </Tooltip>
+                    <Tooltip title="Xóa">
+                      <Button
+                        type="text"
+                        size="large"
+                        icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />}
+                        loading={deletingIds.includes(item.propertyId ?? '')}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent navigating to detail page
+                          handleDelete(item.propertyId ?? '');
+                        }}
+                      />
+                    </Tooltip>
                   </Space>
                 </div>
               </div>

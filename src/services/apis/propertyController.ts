@@ -14,6 +14,18 @@ export async function addToFavourite(body: API.PropertyDTO, options?: { [key: st
   });
 }
 
+/** 此处后端没有提供注释 POST /property/approveProperty */
+export async function approveProperty(body: API.PropertyDTO, options?: { [key: string]: any }) {
+  return request<API.ResponseString>('/property/approveProperty', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
 /** 此处后端没有提供注释 POST /property/createMultiProperty */
 export async function createMultiProperty(
   body: API.PropertyDTO[],
@@ -158,6 +170,18 @@ export async function lockProperty(body: API.PropertyDTO, options?: { [key: stri
 /** 此处后端没有提供注释 POST /property/removeToFavourite */
 export async function removeToFavourite(body: API.PropertyDTO, options?: { [key: string]: any }) {
   return request<API.ResponseString>('/property/removeToFavourite', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  });
+}
+
+/** 此处后端没有提供注释 POST /property/repostProperty */
+export async function repostProperty(body: API.PropertyDTO, options?: { [key: string]: any }) {
+  return request<API.ResponseString>('/property/repostProperty', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

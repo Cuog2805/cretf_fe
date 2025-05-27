@@ -2,10 +2,8 @@ import usePagination from '@/components/EditableTable/usePagination';
 import { useCurrentUser } from '@/selectors/useCurrentUser';
 import useStatus from '@/selectors/useStatus';
 import {
-  confirmDepositContract,
   deleteDepositContract,
   getAllDepositContract,
-  rejectDepositContract,
   searchDepositContract,
 } from '@/services/apis/depositContractController';
 import {
@@ -19,6 +17,7 @@ import { PageContainer } from '@ant-design/pro-components';
 import { Button, Card, Form, Input, message, Select, Space, Table, Tag, Tooltip } from 'antd';
 import { get } from 'lodash';
 import { useEffect, useState } from 'react';
+import DepositApprovalModal from './approve-modal';
 
 const DepositRequest = () => {
   const [searchForm] = Form.useForm();
@@ -30,6 +29,9 @@ const DepositRequest = () => {
   const { tableProps, paginationQuery } = usePagination({
     sort: 'dateCreated,desc',
   });
+  const [approvalModalVisible, setApprovalModalVisible] = useState(false);
+  const [isApprove, setIsApprove] = useState(true);
+  const [selectedContract, setSelectedContract] = useState<API.DepositContractDTO | null>(null);
 
   useEffect(() => {
     handleSearch();
@@ -54,28 +56,42 @@ const DepositRequest = () => {
     });
   };
 
-  const handleConfirm = async (id: string) => {
-    try {
-      confirmDepositContract({ depositContractId: id }).then((resp) => {
-        message.success('Xác nhận thành công');
-        handleSearch();
-      });
-    } catch (error) {
-      message.error('Không thể Xác nhận');
-      console.error(error);
-    }
+  // const handleConfirm = async (id: string) => {
+  //   try {
+  //     confirmDepositContract({ depositContractId: id }).then((resp) => {
+  //       message.success('Xác nhận thành công');
+  //       handleSearch();
+  //     });
+  //   } catch (error) {
+  //     message.error('Không thể Xác nhận');
+  //     console.error(error);
+  //   }
+  // };
+
+  // const handleReject = async (id: string) => {
+  //   try {
+  //     rejectDepositContract({ depositContractId: id }).then((resp) => {
+  //       message.success('Từ chối thành công');
+  //       handleSearch();
+  //     });
+  //   } catch (error) {
+  //     message.error('Không thể Từ chối');
+  //     console.error(error);
+  //   }
+  // };
+
+  // Mở modal phê duyệt
+  const handleApprove = (contract: API.DepositContractDTO) => {
+    setSelectedContract(contract);
+    setIsApprove(true);
+    setApprovalModalVisible(true);
   };
 
-  const handleReject = async (id: string) => {
-    try {
-      rejectDepositContract({ depositContractId: id }).then((resp) => {
-        message.success('Từ chối thành công');
-        handleSearch();
-      });
-    } catch (error) {
-      message.error('Không thể Từ chối');
-      console.error(error);
-    }
+  // Mở modal từ chối
+  const handleReject = (contract: API.DepositContractDTO) => {
+    setSelectedContract(contract);
+    setIsApprove(false);
+    setApprovalModalVisible(true);
   };
 
   const columns = [
@@ -128,16 +144,20 @@ const DepositRequest = () => {
               type="primary"
               danger
               icon={<CheckOutlined />}
-              disabled={!(record.statusId === depositStatusList.find((s) => s.code === 'PROCESS')?.statusId)}
-              onClick={() => handleConfirm(record.depositContractId)}
+              disabled={
+                !(record.statusId === depositStatusList.find((s) => s.code === 'PROCESS')?.statusId)
+              }
+              onClick={() => handleApprove(record)}
             ></Button>
           </Tooltip>
           <Tooltip title="Từ chối">
             <Button
               danger
               icon={<CloseOutlined />}
-              disabled={!(record.statusId === depositStatusList.find((s) => s.code === 'PROCESS')?.statusId)}
-              onClick={() => handleReject(record.depositContractId)}
+              disabled={
+                !(record.statusId === depositStatusList.find((s) => s.code === 'PROCESS')?.statusId)
+              }
+              onClick={() => handleReject(record)}
             ></Button>
           </Tooltip>
         </Space>
@@ -181,6 +201,16 @@ const DepositRequest = () => {
           {...tableProps(total)}
         />
       </Card>
+
+      <DepositApprovalModal
+        visible={approvalModalVisible}
+        isApprove={isApprove}
+        depositContract={selectedContract}
+        onClose={() => setApprovalModalVisible(false)}
+        onSuccess={() => {
+          handleSearch();
+        }}
+      />
     </>
   );
 };
