@@ -1,9 +1,8 @@
 import { register } from '@/services/apis/authController';
 import { LockOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
-import { PageContainer, ProFormItem, ProFormText } from '@ant-design/pro-components';
-import { message, Alert, Card, Select, Button, Form } from 'antd';
+import { PageContainer } from '@ant-design/pro-components';
+import { message, Alert, Card, Select, Button, Form, Input } from 'antd';
 import React, { useState } from 'react';
-import { LoginForm } from '@ant-design/pro-components';
 import { history } from '@umijs/max';
 import useCategoryShareds from '@/selectors/useCategoryShareds';
 
@@ -21,34 +20,69 @@ const Register: React.FC = () => {
     message?: string;
   }>({});
 
-  const handleSubmit = async () => {
-    form
-      .validateFields()
-      .then((values: RegisterFormData) => {
-        if (values.password !== values.confirmPassword) {
-          setRegisterState({
-            status: 'error',
-            message: 'Mật khẩu xác nhận không khớp!',
-          });
-          return;
-        }
+  const [loading, setLoading] = useState(false);
 
-        register({ ...values }).then((response) => {
-          if (response?.throwException) {
-            message.error(response?.message || 'Đăng ký thất bại!');
-            return;
-          }
+  const handleSubmit = async () => {
+    try {
+      const values: RegisterFormData = await form.validateFields();
+      
+      if (values.password !== values.confirmPassword) {
+        setRegisterState({
+          status: 'error',
+          message: 'Mật khẩu xác nhận không khớp!',
+        });
+        return;
+      }
+
+      setLoading(true);
+      setRegisterState({}); // Clear previous error
+
+      register({ ...values })
+        .then((response) => {
           if (response?.success) {
             message.success('Đăng ký thành công!');
             history.push('/auth/login');
-            return;
+          } else {
+            const errorMessage = response?.message || 'Đăng ký thất bại, vui lòng thử lại!';
+            message.error(errorMessage);
+            
+            setRegisterState({
+              status: 'error',
+              message: errorMessage,
+            });
           }
+        })
+        .catch((error) => {
+          console.error('Register error:', error);
+          
+          // Xử lý error từ axios interceptor hoặc response handler
+          let errorMessage = 'Đăng ký thất bại, vui lòng thử lại!';
+          
+          if (error.message) {
+            errorMessage = error.message;
+          } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (typeof error === 'string') {
+            errorMessage = error;
+          }
+          
+          message.error(errorMessage);
+          
+          setRegisterState({
+            status: 'error',
+            message: errorMessage,
+          });
+        })
+        .finally(() => {
+          setLoading(false);
         });
-      })
-      .catch((error) => {
-        message.error('Đăng ký thất bại, vui lòng thử lại!');
-      });
+        
+    } catch (validationError) {
+      console.error('Form validation error:', validationError);
+      setLoading(false);
+    }
   };
+
 
   return (
     <PageContainer title="Crane" style={{ alignItems: 'center' }}>
@@ -56,7 +90,7 @@ const Register: React.FC = () => {
         title={<div style={{ textAlign: 'center' }}>Đăng ký tài khoản</div>}
         style={{ maxWidth: '500px', margin: 'auto' }}
       >
-        <Form form={form}>
+        <Form form={form} layout="vertical">
           {registerState.status === 'error' && (
             <Alert
               message={registerState.message}
@@ -67,50 +101,65 @@ const Register: React.FC = () => {
           )}
 
           {/* UsersDTO */}
-          <ProFormText
+          <Form.Item
             name="username"
-            fieldProps={{ prefix: <UserOutlined /> }}
-            placeholder="Tên đăng nhập"
             rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập!' }]}
-          />
+          >
+            <Input prefix={<UserOutlined />} placeholder="Tên đăng nhập" size="large" />
+          </Form.Item>
 
-          <ProFormText
+          <Form.Item
             name="email"
-            fieldProps={{ prefix: <MailOutlined /> }}
-            placeholder="Email"
             rules={[
               { required: true, message: 'Vui lòng nhập email!' },
               { type: 'email', message: 'Email không hợp lệ!' },
             ]}
-          />
+          >
+            <Input prefix={<MailOutlined />} placeholder="Email" size="large" />
+          </Form.Item>
 
-          <ProFormText.Password
+          <Form.Item
             name="password"
-            fieldProps={{ prefix: <LockOutlined /> }}
-            placeholder="Mật khẩu"
             rules={[
               { required: true, message: 'Vui lòng nhập mật khẩu!' },
               { min: 4, message: 'Mật khẩu phải có ít nhất 4 ký tự!' },
             ]}
-          />
+          >
+            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" size="large" />
+          </Form.Item>
 
-          <ProFormText.Password
+          <Form.Item
             name="confirmPassword"
-            fieldProps={{ prefix: <LockOutlined /> }}
-            placeholder="Xác nhận mật khẩu"
-            rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu!' }]}
-          />
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Xác nhận mật khẩu"
+              size="large"
+            />
+          </Form.Item>
 
           {/* UserDetailDTO */}
-          <ProFormText
+          <Form.Item
             name={['userDetailDTO', 'fullName']}
-            placeholder="Họ và tên"
             rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
-          />
+          >
+            <Input placeholder="Họ và tên" size="large" />
+          </Form.Item>
 
-          <ProFormText
+          <Form.Item
             name={['userDetailDTO', 'phone']}
-            placeholder="Số điện thoại"
             rules={[
               { required: true, message: 'Vui lòng nhập số điện thoại!' },
               {
@@ -118,40 +167,41 @@ const Register: React.FC = () => {
                 message: 'Số điện thoại không hợp lệ!',
               },
             ]}
-          />
-
-          <ProFormText
-            name={['userDetailDTO', 'identificationNumber']}
-            placeholder="Số CCCD/CMND"
-            rules={[{ required: false, message: 'Vui lòng nhập số CCCD/CMND!' }]}
-          />
-
-          <ProFormItem
-            name={['userDetailDTO', 'gender']}
-            rules={[{ required: true, message: 'Vui lòng nhập giới tính!' }]}
           >
-            <Select placeholder="Chọn giới tính">
+            <Input placeholder="Số điện thoại" size="large" />
+          </Form.Item>
+
+          <Form.Item name={['userDetailDTO', 'identificationNumber']} rules={[{ required: false }]}>
+            <Input placeholder="Số CCCD/CMND" size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name={['userDetailDTO', 'gender']}
+            rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
+          >
+            <Select placeholder="Chọn giới tính" size="large">
               {dmGender.map((gender) => (
                 <Select.Option key={gender.code} value={gender.code}>
                   {gender.name}
                 </Select.Option>
               ))}
             </Select>
-          </ProFormItem>
+          </Form.Item>
 
-          <ProFormItem>
+          <Form.Item>
             <Button
               type="primary"
               size="large"
               onClick={handleSubmit}
+              loading={loading}
               style={{ width: '100%' }}
               shape="round"
             >
               Tạo tài khoản
             </Button>
-          </ProFormItem>
+          </Form.Item>
 
-          <ProFormItem>
+          <Form.Item>
             <Button
               type="primary"
               ghost
@@ -164,7 +214,7 @@ const Register: React.FC = () => {
             >
               Trở lại
             </Button>
-          </ProFormItem>
+          </Form.Item>
         </Form>
       </Card>
     </PageContainer>

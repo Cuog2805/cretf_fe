@@ -36,6 +36,7 @@ import {
 import {
   deleteProperty,
   getAllProperties,
+  lockProperty,
   repostProperty,
   updateProperty,
 } from '@/services/apis/propertyController';
@@ -173,7 +174,7 @@ const MyPropertyList = () => {
       onOk: async () => {
         try {
           setDeletingIds((prev) => [...prev, id]);
-          const resp = await deleteProperty({ id: id });
+          const resp = await lockProperty({ propertyId: id });
           message.success(resp.data || 'Đã xóa bất động sản thành công');
           // Refresh the property list after deletion
           handleSearch();

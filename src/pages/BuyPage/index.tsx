@@ -59,6 +59,7 @@ const BuyPage = () => {
   const { propertyTypeList } = usePropertyType();
   const { locationList, locationTree } = useLocations();
 
+  const [loading, setLoading] = useState<boolean>(false);
   const [properties, setProperties] = useState<API.PropertyDTO[]>([]);
   const [total, setTotal] = useState(0);
   const [propertyType, setPropertyType] = useState<string>('');
@@ -113,6 +114,7 @@ const BuyPage = () => {
   };
 
   const handleSearch = () => {
+    setLoading(true);
     form.validateFields().then((formValue) => {
       const typeSearch = getPropertyTypeFromMenu();
       const body: API.PropertyDTO = {
@@ -137,8 +139,10 @@ const BuyPage = () => {
       getAllProperties(page, body).then((res) => {
         setProperties(res?.data);
         setTotal(res?.total);
+        setLoading(false);
       });
     });
+    setLoading(false);
   };
 
   const toggleSortDirection = () => {
@@ -324,6 +328,7 @@ const BuyPage = () => {
         </Form>
 
         <List
+          loading={loading}
           grid={{
             gutter: 16,
             xs: 1,

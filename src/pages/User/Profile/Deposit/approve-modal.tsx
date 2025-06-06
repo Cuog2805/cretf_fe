@@ -42,6 +42,9 @@ const DepositApprovalModal: React.FC<DepositApprovalModalProps> = ({
 
       const body: API.DepositContractDTO = {
         depositContractId: depositContract.depositContractId,
+        propertyId: depositContract.propertyId,
+        buyer: depositContract.buyer,
+        seller: depositContract.seller,
         approvalHistoryDTO: {
           statusId: statusId,
           approver: currentUser?.username,

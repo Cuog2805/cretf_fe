@@ -11,6 +11,7 @@ import {
   CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  EyeOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
@@ -18,8 +19,10 @@ import { Button, Card, Form, Input, message, Select, Space, Table, Tag, Tooltip 
 import { get } from 'lodash';
 import { useEffect, useState } from 'react';
 import DepositApprovalModal from './approve-modal';
+import { useNavigate } from '@umijs/max';
 
 const DepositRequest = () => {
+  const navigate = useNavigate();
   const [searchForm] = Form.useForm();
   const { depositStatusList } = useStatus();
   const currentUser = useCurrentUser();
@@ -132,7 +135,14 @@ const DepositRequest = () => {
       width: 160,
       render: (_: string, record: any) => (
         <Space size="small">
-          <Tooltip title="Từ chối">
+          <Tooltip title="Xem bất động sản">
+            <Button
+              type="primary"
+              icon={<EyeOutlined />}
+              onClick={() => {navigate(`/buy/houses-for-sale/detail/${record.propertyId}`);}}
+            ></Button>
+          </Tooltip>
+          <Tooltip title="Tải xuống">
             <Button
               type="primary"
               icon={<DownloadOutlined />}

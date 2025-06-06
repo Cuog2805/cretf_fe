@@ -67,18 +67,3 @@ export async function getAppointmentBySearch(
     ...(options || {}),
   });
 }
-
-/** 此处后端没有提供注释 POST /appointment/updateAppointment */
-export async function updateAppointment(
-  body: API.AppointmentDTO,
-  options?: { [key: string]: any },
-) {
-  return request<API.ResponseAppointmentDTO>('/appointment/updateAppointment', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  });
-}
